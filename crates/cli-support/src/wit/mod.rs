@@ -989,28 +989,39 @@ impl<'a> Context<'a> {
         for export in trait_.methods {
             let wasm_name = struct_function_export_name(trait_.name, export.function.name);
 
-            let interface = trait_.name;
+            let class = trait_.name.to_string();
+            let receiver = if export.consumed {
+                AuxReceiverKind::Owned
+            } else {
+                AuxReceiverKind::Borrowed
+            };
+
             let kind = match export.method_kind {
                 decode::MethodKind::Constructor => bail!("traits can't have constructors"),
                 decode::MethodKind::Operation(op) => match op.kind {
-                    decode::OperationKind::Getter(f) => AuxExportKind::Getter {
-                        class: interface.to_string(),
-                        field: f.to_string(),
-                        consumed: export.consumed,
+                    decode::OperationKind::Getter(f) => AuxExportKind::Method {
+                        class,
+                        name: f.to_string(),
+                        receiver,
+                        kind: AuxExportedMethodKind::Getter,
                     },
-                    decode::OperationKind::Setter(f) => AuxExportKind::Setter {
-                        class: interface.to_string(),
-                        field: f.to_string(),
-                        consumed: export.consumed,
+                    decode::OperationKind::Setter(f) => AuxExportKind::Method {
+                        class,
+                        name: f.to_string(),
+                        receiver,
+                        kind: AuxExportedMethodKind::Setter,
                     },
-                    _ if op.is_static => AuxExportKind::StaticFunction {
-                        class: interface.to_string(),
+                    _ if op.is_static => AuxExportKind::Method {
+                        class,
                         name: export.function.name.to_string(),
+                        receiver: AuxReceiverKind::None,
+                        kind: AuxExportedMethodKind::Method,
                     },
                     _ => AuxExportKind::Method {
-                        class: interface.to_string(),
+                        class,
                         name: export.function.name.to_string(),
-                        consumed: export.consumed,
+                        receiver: receiver,
+                        kind: AuxExportedMethodKind::Method,
                     },
                 },
             };

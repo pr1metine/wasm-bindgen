@@ -1,4 +1,4 @@
-use crate::descriptor::{VectorKind, Function};
+use crate::descriptor::{Function, VectorKind};
 use crate::intrinsic::Intrinsic;
 use crate::wit::{
     Adapter, AdapterId, AdapterJsImportKind, AdapterType, AuxExportedMethodKind, AuxReceiverKind,
@@ -3693,12 +3693,13 @@ impl<'a> Context<'a> {
                 AuxExportKind::Function(_) | AuxExportKind::Constructor(_) => {
                     bail!("this shouldn't be possible")
                 }
-                AuxExportKind::Getter { field: name, .. }
-                | AuxExportKind::Setter { field: name, .. }
-                | AuxExportKind::StaticFunction { name, .. }
-                | AuxExportKind::Method { name, .. } => name.clone(),
+                AuxExportKind::Method { name, .. } => name.clone(),
             };
-            symbols.push_str(&format!("{name}:Symbol(\"{}.{name}\"),", trait_.name, name = name));
+            symbols.push_str(&format!(
+                "{name}:Symbol(\"{}.{name}\"),",
+                trait_.name,
+                name = name
+            ));
             if trait_.generate_typescript {
                 self.typescript.push_str("\n");
                 self.typescript.push_str(&format_doc_comments(
@@ -3708,7 +3709,7 @@ impl<'a> Context<'a> {
                 self.typescript
                     .push_str(&format!("  readonly {}: unique symbol;", name));
                 interface.push_str("\n");
-                
+
                 //How do I generate ts sig for this?
                 //interface.push_str()
             }

@@ -43,6 +43,7 @@ impl Default for Program {
             linked_modules: Default::default(),
             enums: Default::default(),
             structs: Default::default(),
+            traits: Default::default(),
             typescript_custom_sections: Default::default(),
             inline_js: Default::default(),
             wasm_bindgen: syn::parse_quote! { wasm_bindgen },

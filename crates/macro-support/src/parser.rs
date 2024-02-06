@@ -491,7 +491,7 @@ impl<'a> ConvertToAst<BindgenAttrs> for &'a mut syn::ItemTrait {
         for supertrait in self.supertraits.iter() {
             match supertrait {
                 syn::TypeParamBound::Trait(t) => supertraits.push(extract_path_ident(&t.path)?),
-                _ => panic!("Why is the type parameter on the supertrait not a trait?")
+                _ => panic!("Why is the type parameter on the supertrait not a trait?"),
             }
         }
 
@@ -503,11 +503,12 @@ impl<'a> ConvertToAst<BindgenAttrs> for &'a mut syn::ItemTrait {
         let mut methods = Vec::new();
         for item in self.items.iter_mut() {
             match item {
-                syn::TraitItem::Method(method) => {
+                // syn::TraitItem::Method(method) =>{
+                syn::TraitItem::Fn(method) => {
                     let attrs = BindgenAttrs::find(&mut method.attrs)?;
-                    assert_not_variadic(&attrs)?;
+                    // assert_not_variadic(&attrs)?;
                     if attrs.skip().is_some() {
-                        attrs.check_used()?;
+                        attrs.check_used();
                         continue;
                     }
 
@@ -521,7 +522,8 @@ impl<'a> ConvertToAst<BindgenAttrs> for &'a mut syn::ItemTrait {
                         panic!("traits can't define constructors")
                     }
 
-                    let (js_name, rust_name) = (method.sig.ident.to_string(), method.sig.ident.clone());
+                    let (js_name, rust_name) =
+                        (method.sig.ident.to_string(), method.sig.ident.clone());
                     let js_name = match attrs.js_name() {
                         Some((name, _)) => name.to_string(),
                         None => js_name,
@@ -536,6 +538,8 @@ impl<'a> ConvertToAst<BindgenAttrs> for &'a mut syn::ItemTrait {
                         self.vis.clone(),
                         true,
                         Some(&self.ident),
+                        false,
+                        None,
                     )?;
 
                     let method_kind = {
@@ -553,21 +557,21 @@ impl<'a> ConvertToAst<BindgenAttrs> for &'a mut syn::ItemTrait {
                         method_kind,
                         comments,
                     });
-                    attrs.check_used()?;
+                    attrs.check_used();
                 }
                 _ => {}
             }
         }
         let generate_typescript = attrs.skip_typescript().is_none();
         let comments: Vec<String> = extract_doc_comments(&self.attrs);
-        attrs.check_used()?;
+        attrs.check_used();
         Ok(ast::Trait {
             rust_name: self.ident.clone(),
             js_name,
             methods,
             comments,
             generate_typescript,
-            supertraits
+            supertraits,
         })
     }
 }
