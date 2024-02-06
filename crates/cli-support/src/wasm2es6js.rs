@@ -1,4 +1,5 @@
 use anyhow::{bail, Error};
+use base64::{prelude::BASE64_STANDARD, Engine as _};
 use std::collections::HashSet;
 use std::fmt::Write;
 use walrus::Module;
@@ -33,7 +34,7 @@ impl Config {
     }
 
     pub fn generate(&mut self, wasm: &[u8]) -> Result<Output, Error> {
-        if !self.base64 && !self.fetch_path.is_some() {
+        if !self.base64 && self.fetch_path.is_none() {
             bail!("one of --base64 or --fetch is required");
         }
         let module = Module::from_buffer(wasm)?;
@@ -53,6 +54,10 @@ fn push_index_identifier(i: usize, s: &mut String) {
     if i >= 26 {
         write!(s, "{}", i / 26).unwrap();
     }
+}
+
+fn args_are_optional(name: &str) -> bool {
+    name == "__wbindgen_thread_destroy"
 }
 
 pub fn interface(module: &Module) -> Result<String, Error> {
@@ -81,6 +86,9 @@ pub fn interface(module: &Module) -> Result<String, Error> {
             }
 
             push_index_identifier(i, &mut args);
+            if args_are_optional(&entry.name) {
+                args.push('?');
+            }
             args.push_str(": number");
         }
 
@@ -100,7 +108,7 @@ pub fn interface(module: &Module) -> Result<String, Error> {
 }
 
 pub fn typescript(module: &Module) -> Result<String, Error> {
-    let mut exports = format!("/* tslint:disable */\n/* eslint-disable */\n");
+    let mut exports = "/* tslint:disable */\n/* eslint-disable */\n".to_string();
     for entry in module.exports.iter() {
         let id = match entry.item {
             walrus::ExportItem::Function(i) => i,
@@ -234,7 +242,7 @@ impl Output {
                         bytes = Buffer.from(base64, 'base64');
                     }}
                     ",
-                    base64 = base64::encode(&wasm)
+                    base64 = BASE64_STANDARD.encode(&wasm)
                 ),
                 inst,
             )

@@ -1,18 +1,21 @@
+use walrus::ModuleConfig;
 use wasm_bindgen_wasm_interpreter::Interpreter;
 
 fn interpret(wat: &str, name: &str, result: Option<&[u32]>) {
     let wasm = wat::parse_str(wat).unwrap();
-    let module = walrus::Module::from_buffer(&wasm).unwrap();
+    let mut module = ModuleConfig::new()
+        .generate_producers_section(false)
+        .parse(&wasm)
+        .unwrap();
     let mut i = Interpreter::new(&module).unwrap();
     let id = module
         .exports
         .iter()
         .filter(|e| e.name == name)
-        .filter_map(|e| match e.item {
+        .find_map(|e| match e.item {
             walrus::ExportItem::Function(f) => Some(f),
             _ => None,
         })
-        .next()
         .unwrap();
     assert_eq!(i.interpret_descriptor(id, &module), result);
 }
@@ -87,7 +90,8 @@ fn globals() {
             (export "foo" (func $foo))
         )
     "#;
-    interpret(wat, "foo", Some(&[256]));
+    // __wbindgen_describe is called with a global - in Frame.eval we assume all access to globals is the stack pointer
+    interpret(wat, "foo", Some(&[1024]));
 }
 
 #[test]
